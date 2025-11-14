@@ -8,22 +8,31 @@ if (!MONGO_URI) {
 const DB_NAME = "mp5-urls";
 export const URL_COLLECTION = "url-collection";
 
-let client: MongoClient | null = null;
-let db: Db | null = null;
+let cachedClient: MongoClient | null = null;
+let cachedDb: Db | null = null;
 
-async function connect(): Promise<Db> {
-  if (!client) {
-    client = new MongoClient(MONGO_URI!);
-    await client.connect();
+// i had to modify this function because i was receiving the following Error
+//    MongoTopologyClosedError: Topology is closed
+// this is ocurring because our mongodb connection is being closed prematurely
+// so i am now caching the client and db in memory
+async function connect(): Promise<{ client: MongoClient; db: Db }> {
+  if (cachedDb && cachedClient) {
+    return { client: cachedClient, db: cachedDb };
   }
-  return client.db(DB_NAME);
+
+  // if there's no cached client or it's not connected, create a new one
+  const client = new MongoClient(MONGO_URI!);
+  await client.connect();
+
+  cachedClient = client;
+  cachedDb = client.db(DB_NAME);
+
+  return { client: cachedClient, db: cachedDb };
 }
 
 export default async function getCollection(
   collectionName: string,
 ): Promise<Collection> {
-  if (!db) {
-    db = await connect();
-  }
+  const { db } = await connect();
   return db.collection(collectionName);
 }
