@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import createNewUrl from "@/lib/createNewUrl";
 import Link from "next/link";
+import { Spinner } from "@/components/ui/spinner";
 
 // form schema using zod
 const formSchema = z.object({
@@ -29,6 +30,7 @@ const formSchema = z.object({
 export default function Home() {
   const [url, setUrl] = useState<string | null>(null);
   const [alias, setAlias] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const PUBLIC_URL = process.env.NEXT_PUBLIC_URL;
   if (!PUBLIC_URL) {
@@ -45,10 +47,12 @@ export default function Home() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
     createNewUrl(values.url, values.alias)
       .then((u) => {
         setUrl(u.url);
         setAlias(u.alias);
+        setIsLoading(false);
       })
       .catch((e) => {
         console.error(e);
@@ -100,9 +104,13 @@ export default function Home() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full h-11 text-base">
-              Shorten URL
-            </Button>
+            {!isLoading ? (
+              <Button type="submit" className="w-full h-11 text-base">
+                Shorten URL
+              </Button>
+            ) : (
+              <Spinner className="size-6 m-auto" />
+            )}
           </form>
         </Form>
 
